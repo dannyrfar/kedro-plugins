@@ -1,6 +1,5 @@
-"""``FeatherDataSet`` is a data set used to load and save data to feather files
-using an underlying filesystem (e.g.: local, S3, GCS). The underlying functionality
-is supported by pandas, so it supports all operations the pandas supports.
+"""``CSVDataSet`` loads/saves data from/to a CSV file using an underlying
+filesystem (e.g.: local, S3, GCS). It uses polars to handle the CSV file.
 """
 import logging
 from copy import deepcopy
@@ -9,10 +8,11 @@ from pathlib import PurePosixPath
 from typing import Any, Dict
 
 import fsspec
-import pandas as pd
+import polars as pl
 from kedro.io.core import (
     PROTOCOL_DELIMITER,
     AbstractVersionedDataSet,
+    DataSetError,
     Version,
     get_filepath_str,
     get_protocol_and_path,
@@ -21,51 +21,49 @@ from kedro.io.core import (
 logger = logging.getLogger(__name__)
 
 
-class FeatherDataSet(AbstractVersionedDataSet[pd.DataFrame, pd.DataFrame]):
-    """``FeatherDataSet`` loads and saves data to a feather file using an
-    underlying filesystem (e.g.: local, S3, GCS). The underlying functionality
-    is supported by pandas, so it supports all allowed pandas options
-    for loading and saving csv files.
+class CSVDataSet(AbstractVersionedDataSet[pl.DataFrame, pl.DataFrame]):
+    """``CSVDataSet`` loads/saves data from/to a CSV file using an underlying
+    filesystem (e.g.: local, S3, GCS). It uses polars to handle the CSV file.
 
-    Example usage for the
-    `YAML API <https://kedro.readthedocs.io/en/stable/data/\
-    data_catalog.html#use-the-data-catalog-with-the-yaml-api>`_:
+    Example adding a catalog entry with
+    `YAML API
+    <https://kedro.readthedocs.io/en/stable/data/\
+        data_catalog.html#use-the-data-catalog-with-the-yaml-api>`_:
 
     .. code-block:: yaml
 
-        cars:
-          type: pandas.FeatherDataSet
-          filepath: data/01_raw/company/cars.feather
-          load_args:
-            columns: ['col1', 'col2', 'col3']
-            use_threads: True
+        >>> cars:
+        >>>   type: polars.CSVDataSet
+        >>>   filepath: data/01_raw/company/cars.csv
+        >>>   load_args:
+        >>>     sep: ","
+        >>>     parse_dates: False
+        >>>   save_args:
+        >>>     has_header: False
+                null_value: "somenullstring"
+        >>>
+        >>> motorbikes:
+        >>>   type: polars.CSVDataSet
+        >>>   filepath: s3://your_bucket/data/02_intermediate/company/motorbikes.csv
+        >>>   credentials: dev_s3
 
-        motorbikes:
-          type: pandas.FeatherDataSet
-          filepath: s3://your_bucket/data/02_intermediate/company/motorbikes.feather
-          credentials: dev_s3
-
-    Example usage for the
-    `Python API <https://kedro.readthedocs.io/en/stable/data/\
-    data_catalog.html#use-the-data-catalog-with-the-code-api>`_:
+    Example using Python API:
     ::
 
-        >>> from kedro_datasets.pandas import FeatherDataSet
-        >>> import pandas as pd
+        >>> from kedro_datasets.polars import CSVDataSet
+        >>> import polars as pl
         >>>
-        >>> data = pd.DataFrame({'col1': [1, 2], 'col2': [4, 5],
+        >>> data = pl.DataFrame({'col1': [1, 2], 'col2': [4, 5],
         >>>                      'col3': [5, 6]})
         >>>
-        >>> data_set = FeatherDataSet(filepath="test.feather")
-        >>>
+        >>> data_set = CSVDataSet(filepath="test.csv")
         >>> data_set.save(data)
         >>> reloaded = data_set.load()
-        >>>
-        >>> assert data.equals(reloaded)
+        >>> assert data.frame_equal(reloaded)
 
     """
 
-    DEFAULT_LOAD_ARGS = {}  # type: Dict[str, Any]
+    DEFAULT_LOAD_ARGS = {"rechunk": True}  # type: Dict[str, Any]
     DEFAULT_SAVE_ARGS = {}  # type: Dict[str, Any]
 
     # pylint: disable=too-many-arguments
@@ -78,21 +76,24 @@ class FeatherDataSet(AbstractVersionedDataSet[pd.DataFrame, pd.DataFrame]):
         credentials: Dict[str, Any] = None,
         fs_args: Dict[str, Any] = None,
     ) -> None:
-        """Creates a new instance of ``FeatherDataSet`` pointing to a concrete
-        filepath.
+        """Creates a new instance of ``CSVDataSet`` pointing to a concrete CSV file
+        on a specific filesystem.
 
         Args:
-            filepath: Filepath in POSIX format to a feather file prefixed with a protocol like
-                `s3://`. If prefix is not provided, `file` protocol (local filesystem) will be used.
+            filepath: Filepath in POSIX format to a CSV file prefixed with a protocol
+                `s3://`.
+                If prefix is not provided, `file` protocol (local filesystem)
+                will be used.
                 The prefix should be any protocol supported by ``fsspec``.
                 Note: `http(s)` doesn't support versioning.
-            load_args: Pandas options for loading feather files.
+            load_args: Polars options for loading CSV files.
                 Here you can find all available arguments:
-                https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_feather.html
-                All defaults are preserved.
-            save_args: Pandas options for saving feather files.
+                https://pola-rs.github.io/polars/py-polars/html/reference/api/polars.read_csv.html#polars.read_csv
+                All defaults are preserved, but we explicity use `rechunk=True` for `seaborn`
+                compability.
+            save_args: Polars options for saving CSV files.
                 Here you can find all available arguments:
-                https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_feather.html
+                https://pola-rs.github.io/polars/py-polars/html/reference/api/polars.DataFrame.write_csv.html
                 All defaults are preserved.
             version: If specified, should be an instance of
                 ``kedro.io.core.Version``. If its ``load`` attribute is
@@ -121,7 +122,7 @@ class FeatherDataSet(AbstractVersionedDataSet[pd.DataFrame, pd.DataFrame]):
             glob_function=self._fs.glob,
         )
 
-        # Handle default load argument
+        # Handle default load and save arguments
         self._load_args = deepcopy(self.DEFAULT_LOAD_ARGS)
         if load_args is not None:
             self._load_args.update(load_args)
@@ -143,28 +144,29 @@ class FeatherDataSet(AbstractVersionedDataSet[pd.DataFrame, pd.DataFrame]):
             "filepath": self._filepath,
             "protocol": self._protocol,
             "load_args": self._load_args,
+            "save_args": self._save_args,
             "version": self._version,
         }
 
-    def _load(self) -> pd.DataFrame:
+    def _load(self) -> pl.DataFrame:
         load_path = str(self._get_load_path())
         if self._protocol == "file":
             # file:// protocol seems to misbehave on Windows
             # (<urlopen error file not on local host>),
             # so we don't join that back to the filepath;
             # storage_options also don't work with local paths
-            return pd.read_feather(load_path, **self._load_args)
+            return pl.read_csv(load_path, **self._load_args)
 
         load_path = f"{self._protocol}{PROTOCOL_DELIMITER}{load_path}"
-        return pd.read_feather(
+        return pl.read_csv(
             load_path, storage_options=self._storage_options, **self._load_args
         )
 
-    def _save(self, data: pd.DataFrame) -> None:
+    def _save(self, data: pl.DataFrame) -> None:
         save_path = get_filepath_str(self._get_save_path(), self._protocol)
 
         buf = BytesIO()
-        data.to_feather(buf, **self._save_args)
+        data.write_csv(file=buf, **self._save_args)
 
         with self._fs.open(save_path, mode="wb") as fs_file:
             fs_file.write(buf.getvalue())
@@ -172,7 +174,11 @@ class FeatherDataSet(AbstractVersionedDataSet[pd.DataFrame, pd.DataFrame]):
         self._invalidate_cache()
 
     def _exists(self) -> bool:
-        load_path = get_filepath_str(self._get_load_path(), self._protocol)
+        try:
+            load_path = get_filepath_str(self._get_load_path(), self._protocol)
+        except DataSetError:
+            return False
+
         return self._fs.exists(load_path)
 
     def _release(self) -> None:
