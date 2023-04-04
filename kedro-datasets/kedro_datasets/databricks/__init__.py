@@ -13,10 +13,10 @@ __all__ = [
 from contextlib import suppress
 
 with suppress(ImportError):
-    from .artifact import MLFlowArtifact
-    from .dataset import MLFlowDataSet
     from .managed_table_dataset import ManagedTableDataSet
-    from .metrics import MLFlowMetrics
-    from .model import MLFlowModel
-    from .model_metadata import MLFlowModelMetadata
-    from .tags import MLFlowTags
+    from .mlflow_artifact import MLFlowArtifact
+    from .mlflow_dataset import MLFlowDataSet
+    from .mlflow_metrics import MLFlowMetrics
+    from .mlflow_model import MLFlowModel
+    from .mlflow_model_metadata import MLFlowModelMetadata
+    from .mlflow_tags import MLFlowTags
