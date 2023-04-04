@@ -1,4 +1,8 @@
 """Provides interface to Unity Catalog Tables."""
 
-from .unity import ManagedTableDataSet
-from .mlflow import MLFlowModel, MLFlowArtifact, MLFlowDataSet, MLFlowMetrics, MLFlowModelMetadata, MLFlowTags
+__all__ = ["ManagedTableDataSet"]
+
+from contextlib import suppress
+
+with suppress(ImportError):
+    from .managed_table_dataset import ManagedTableDataSet

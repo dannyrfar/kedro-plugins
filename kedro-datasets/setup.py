@@ -14,6 +14,7 @@ SPARK = "pyspark>=2.2, <4.0"
 HDFS = "hdfs>=2.5.8, <3.0"
 S3FS = "s3fs>=0.3.0, <0.5"
 POLARS = "polars~=0.15.16"
+DELTA = "delta-spark~=1.2.1"
 
 with open("requirements.txt", "r", encoding="utf-8") as f:
     install_requires = [x.strip() for x in f if x.strip()]
@@ -39,13 +40,7 @@ api_require = {"api.APIDataSet": ["requests~=2.20"]}
 biosequence_require = {"biosequence.BioSequenceDataSet": ["biopython~=1.73"]}
 dask_require = {"dask.ParquetDataSet": ["dask[complete]~=2021.10", "triad>=0.6.7, <1.0"]}
 databricks_require = {
-    "databricks.ManagedTableDataSet": [SPARK, PANDAS],
-    "databricks.MLFlowModel":[SPARK, PANDAS, "mlflow>=2.0.0"],
-    "databricks.MLFlowArtifact":[SPARK, PANDAS, "mlflow>=2.0.0"],
-    "databricks.MLFlowDataSet":[SPARK, PANDAS, "mlflow>=2.0.0"],
-    "databricks.MLFlowMetrics":[SPARK, PANDAS, "mlflow>=2.0.0"],
-    "databricks.MLFlowModelMetadata":[SPARK, PANDAS, "mlflow>=2.0.0"],
-    "databricks.MLFlowTags":[SPARK, PANDAS, "mlflow>=2.0.0"]
+    "databricks.ManagedTableDataSet": [SPARK, PANDAS, DELTA]
 }
 geopandas_require = {
     "geopandas.GeoJSONDataSet": ["geopandas>=0.6.0, <1.0", "pyproj~=3.0"]
@@ -67,7 +62,7 @@ pandas_require = {
     "pandas.JSONDataSet": [PANDAS],
     "pandas.ParquetDataSet": [PANDAS, "pyarrow>=6.0"],
     "pandas.SQLTableDataSet": [PANDAS, "SQLAlchemy~=1.2"],
-    "pandas.SQLQueryDataSet": [PANDAS, "SQLAlchemy~=1.2"],
+    "pandas.SQLQueryDataSet": [PANDAS, "SQLAlchemy~=1.2", "pyodbc~=4.0"],
     "pandas.XMLDataSet": [PANDAS, "lxml~=4.6"],
     "pandas.GenericDataSet": [PANDAS],
 }
@@ -86,6 +81,9 @@ spark_require = {
     "spark.SparkHiveDataSet": [SPARK, HDFS, S3FS],
     "spark.SparkJDBCDataSet": [SPARK, HDFS, S3FS],
     "spark.DeltaTableDataSet": [SPARK, HDFS, S3FS, "delta-spark~=1.0"],
+}
+snowpark_require = {
+    "snowflake.SnowparkTableDataSet": ["snowflake-snowpark-python~=1.0.0", "pyarrow~=8.0"]
 }
 svmlight_require = {"svmlight.SVMLightDataSet": ["scikit-learn~=1.0.2", "scipy~=1.7.3"]}
 tensorflow_required = {
@@ -141,6 +139,7 @@ extras_require = {
     **video_require,
     **plotly_require,
     **spark_require,
+    **snowpark_require,
     **svmlight_require,
     **tensorflow_required,
     **yaml_require,
