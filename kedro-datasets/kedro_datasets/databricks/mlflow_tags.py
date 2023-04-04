@@ -1,3 +1,6 @@
+"""``MLFlowTags`` implementation to access managed MLFLow
+in Databricks.
+"""
 import logging
 from typing import Any, Dict, Union
 
@@ -6,12 +9,18 @@ from kedro.io.core import AbstractDataSet
 from mlflow.exceptions import MlflowException
 from mlflow.tracking import MlflowClient
 
-from .common import ModelOpsException
+from .mlflow_common import ModelOpsException
 
 logger = logging.getLogger(__name__)
 
 
-class MLFlowMetrics(AbstractDataSet):
+class MLFlowTags(AbstractDataSet):
+    """_summary_
+
+    Args:
+        AbstractDataSet (_type_): _description_
+    """
+
     def __init__(
         self,
         prefix: str = None,
@@ -29,7 +38,7 @@ class MLFlowMetrics(AbstractDataSet):
 
         if run_id and registered_model_name:
             raise ModelOpsException(
-                "'run_id' cannot be passed when " "'registered_model_name' is set"
+                "'run_id' cannot be passed when 'registered_model_name' is set"
             )
 
         self._prefix = prefix
@@ -42,16 +51,18 @@ class MLFlowMetrics(AbstractDataSet):
         else:
             self._version = run_id
 
-    def _save(self, metrics: Dict[str, Union[str, float, int]]) -> None:
+    def _save(self, data: Dict[str, Union[str, float, int]]) -> None:
         if self._prefix is not None:
-            metrics = {f"{self._prefix}_{key}": value for key, value in metrics.items()}
-        mlflow.log_metrics(metrics)
+            tags = {f"{self._prefix}_{key}": value for key, value in data.items()}
+
+        mlflow.set_tags(tags)
 
         run_id = mlflow.active_run().info.run_id
         if self._version is not None:
             logger.warning(
-                f"Ignoring version {self._version.save} set "
-                f"earlier, will use version='{run_id}' for loading"
+                "Ignoring version %s set earlier, will use version='%s' for loading",
+                self._version.save,
+                run_id,
             )
         self._version = run_id
 
@@ -61,7 +72,7 @@ class MLFlowMetrics(AbstractDataSet):
                 "Could not determine the version to load. "
                 "Please specify either 'run_id' or 'registered_model_name' "
                 "along with 'registered_model_version' explicitly in "
-                "MLFlowMetrics constructor"
+                "MLFlowTags constructor"
             )
             raise MlflowException(msg)
 
@@ -70,24 +81,24 @@ class MLFlowMetrics(AbstractDataSet):
         if "/" in self._version:
             model_uri = f"models:/{self._version}"
             model = mlflow.pyfunc.load_model(model_uri)
-            run_id = model._model_meta.run_id
+            run_id = model._model_meta.run_id  # pylint: disable=W0212
         else:
             run_id = self._version
 
         run = client.get_run(run_id)
-        metrics = run.data.metrics
+        tags = run.data.tags
         if self._prefix is not None:
-            metrics = {
+            tags = {
                 key[len(self._prefix) + 1 :]: value
-                for key, value in metrics.items()
+                for key, value in tags.items()
                 if key[: len(self._prefix)] == self._prefix
             }
-        return metrics
+        return tags
 
     def _describe(self) -> Dict[str, Any]:
-        return dict(
-            prefix=self._prefix,
-            run_id=self._run_id,
-            registered_model_name=self._registered_model_name,
-            registered_model_version=self._registered_model_version,
-        )
+        return {
+            "prefix": self._prefix,
+            "run_id": self._run_id,
+            "registered_model_name": self._registered_model_name,
+            "registered_model_version": self._registered_model_version,
+        }

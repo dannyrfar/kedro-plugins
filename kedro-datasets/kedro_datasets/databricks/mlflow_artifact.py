@@ -1,3 +1,6 @@
+"""``MLFlowArtifact`` implementation to access managed MLFLow
+in Databricks.
+"""
 import logging
 import os
 from pathlib import Path
@@ -10,12 +13,18 @@ from kedro.utils import load_obj as load_dataset
 from mlflow.exceptions import MlflowException
 from mlflow.tracking.artifact_utils import _download_artifact_from_uri
 
-from .common import MLFLOW_RUN_ID_ENV_VAR, ModelOpsException
+from .mlflow_common import MLFLOW_RUN_ID_ENV_VAR, ModelOpsException
 
 logger = logging.getLogger(__name__)
 
 
-class MLFlowArtifact(AbstractDataSet):
+class MLFlowArtifact(AbstractDataSet):  # pylint: disable=R0902
+    """_summary_
+
+    Args:
+        AbstractDataSet (_type_): _description_
+    """
+
     def __init__(
         self,
         dataset_name: str,
@@ -56,7 +65,7 @@ class MLFlowArtifact(AbstractDataSet):
 
         if run_id and registered_model_name:
             raise ModelOpsException(
-                "'run_id' cannot be passed when " "'registered_model_name' is set"
+                "'run_id' cannot be passed when 'registered_model_name' is set"
             )
 
         self._dataset_name = dataset_name
@@ -78,8 +87,8 @@ class MLFlowArtifact(AbstractDataSet):
 
     def _save(self, data: Any) -> None:
         cls = load_dataset(self._dataset_type)
-        ds = cls(filepath=self._filepath.as_posix(), **self._dataset_args)
-        ds.save(data)
+        d_s = cls(filepath=self._filepath.as_posix(), **self._dataset_args)
+        d_s.save(data)
 
         filepath = self._filepath.as_posix()
         if os.path.isdir(filepath):
@@ -92,8 +101,9 @@ class MLFlowArtifact(AbstractDataSet):
         run_id = mlflow.active_run().info.run_id
         if self._version is not None:
             logger.warning(
-                f"Ignoring version {self._version} set "
-                f"earlier, will use version='{run_id}' for loading"
+                "Ignoring version %s set earlier, will use version='%s' for loading",
+                self._version,
+                run_id,
             )
         self._version = run_id
 
@@ -110,7 +120,7 @@ class MLFlowArtifact(AbstractDataSet):
         if "/" in self._version:
             model_uri = f"models:/{self._version}"
             model = mlflow.pyfunc.load_model(model_uri)
-            run_id = model._model_meta.run_id
+            run_id = model._model_meta.run_id  # pylint: disable=W0212
         else:
             run_id = self._version
 
@@ -119,15 +129,15 @@ class MLFlowArtifact(AbstractDataSet):
         )
 
         cls = load_dataset(self._dataset_type)
-        ds = cls(filepath=local_path, **self._dataset_args)
-        return ds.load()
+        d_s = cls(filepath=local_path, **self._dataset_args)
+        return d_s.load()
 
     def _describe(self) -> Dict[str, Any]:
-        return dict(
-            dataset_name=self._dataset_name,
-            dataset_type=self._dataset_type,
-            dataset_args=self._dataset_args,
-            file_suffix=self._file_suffix,
-            registered_model_name=self._registered_model_name,
-            registered_model_version=self._registered_model_version,
-        )
+        return {
+            "dataset_name": self._dataset_name,
+            "dataset_type": self._dataset_type,
+            "dataset_args": self._dataset_args,
+            "file_suffix": self._file_suffix,
+            "registered_model_name": self._registered_model_name,
+            "registered_model_version": self._registered_model_version,
+        }

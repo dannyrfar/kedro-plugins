@@ -1,15 +1,24 @@
+"""``MLFlowDataSet`` implementation to access managed MLFLow
+in Databricks.
+"""
 import importlib
 import logging
 from typing import Any, Dict
 
 from kedro.io.core import AbstractDataSet
 
-from .common import ModelOpsException, parse_model_uri
+from .mlflow_common import ModelOpsException, parse_model_uri
 
 logger = logging.getLogger(__name__)
 
 
 class MLFlowDataSet(AbstractDataSet):
+    """_summary_
+
+    Args:
+        AbstractDataSet (_type_): _description_
+    """
+
     def __init__(
         self,
         flavor: str,
@@ -27,7 +36,7 @@ class MLFlowDataSet(AbstractDataSet):
         self._file_suffix = file_suffix
         self._load_version = load_version
 
-    def _save(self, model: Any) -> None:
+    def _save(self, data: Any) -> None:
         if self._load_version is not None:
             msg = (
                 f"Trying to save an MLFlowDataSet::{self._describe} which "
@@ -39,7 +48,7 @@ class MLFlowDataSet(AbstractDataSet):
             raise ModelOpsException(msg)
 
         importlib.import_module(self._flavor).log_model(
-            model,
+            data,
             self._dataset_name,
             registered_model_name=self._dataset_name,
             dataset_type=self._dataset_type,
@@ -55,10 +64,12 @@ class MLFlowDataSet(AbstractDataSet):
             f"models:/{self._dataset_name}/{dataset_version}"
         )
 
-        logger.info(f"Loading model '{self._dataset_name}' version '{dataset_version}'")
+        logger.info(
+            "Loading model '%s' version '%s'", self._dataset_name, dataset_version
+        )
 
         if dataset_version != latest_version:
-            logger.warning(f"Newer version {latest_version} exists in repo")
+            logger.warning("Newer version %s exists in repo", latest_version)
 
         model = importlib.import_module(self._flavor).load_model(
             f"models:/{self._dataset_name}/{dataset_version}",
@@ -70,11 +81,11 @@ class MLFlowDataSet(AbstractDataSet):
         return model
 
     def _describe(self) -> Dict[str, Any]:
-        return dict(
-            flavor=self._flavor,
-            dataset_name=self._dataset_name,
-            dataset_type=self._dataset_type,
-            dataset_args=self._dataset_args,
-            file_suffix=self._file_suffix,
-            load_version=self._load_version,
-        )
+        return {
+            "flavor": self._flavor,
+            "dataset_name": self._dataset_name,
+            "dataset_type": self._dataset_type,
+            "dataset_args": self._dataset_args,
+            "file_suffix": self._file_suffix,
+            "load_version": self._load_version,
+        }
