@@ -329,6 +329,7 @@ class SQLQueryDataSet(AbstractDataSet[None, pd.DataFrame]):
         >>>                            credentials=credentials)
         >>>
         >>> sql_data = data_set.load()
+
     Example of usage for mssql:
     ::
 

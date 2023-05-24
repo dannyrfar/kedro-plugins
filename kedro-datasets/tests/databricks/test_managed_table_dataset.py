@@ -1,6 +1,6 @@
 import pandas as pd
 import pytest
-from kedro.io.core import DataSetError, VersionNotFoundError
+from kedro.io.core import DataSetError, Version, VersionNotFoundError
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
@@ -180,17 +180,14 @@ class TestManagedTableDataSet:
         )
         assert unity_ds._table.full_table_location() == "`test-test`.`test`.`test`"
 
-    def test_database_table(self):
         unity_ds = ManagedTableDataSet(database="test", table="test")
         assert unity_ds._table.full_table_location() == "`test`.`test`"
 
-    def test_table_only(self):
         unity_ds = ManagedTableDataSet(table="test")
         assert unity_ds._table.full_table_location() == "`default`.`test`"
 
-    def test_table_missing(self):
         with pytest.raises(TypeError):
-            ManagedTableDataSet()  # pylint: disable=E1120
+            ManagedTableDataSet()  # pylint: disable=no-value-for-parameter
 
     def test_describe(self):
         unity_ds = ManagedTableDataSet(table="test")
@@ -287,7 +284,9 @@ class TestManagedTableDataSet:
         unity_ds = ManagedTableDataSet(database="test", table="test_save")
         unity_ds.save(sample_spark_df)
         saved_table = unity_ds.load()
-        assert unity_ds.exists() and sample_spark_df.exceptAll(saved_table).count() == 0
+        assert (
+            unity_ds._exists() and sample_spark_df.exceptAll(saved_table).count() == 0
+        )
 
     def test_save_schema_spark(
         self, subset_spark_df: DataFrame, subset_expected_df: DataFrame
@@ -450,7 +449,7 @@ class TestManagedTableDataSet:
         unity_ds.save(sample_spark_df)
 
         delta_ds = ManagedTableDataSet(
-            database="test", table="test_load_spark", version=2
+            database="test", table="test_load_spark", version=Version(2, None)
         )
         with pytest.raises(VersionNotFoundError):
             _ = delta_ds.load()
@@ -463,7 +462,7 @@ class TestManagedTableDataSet:
         unity_ds.save(append_spark_df)
 
         loaded_ds = ManagedTableDataSet(
-            database="test", table="test_load_version", version=0
+            database="test", table="test_load_version", version=Version(0, None)
         )
         loaded_df = loaded_ds.load()
 
