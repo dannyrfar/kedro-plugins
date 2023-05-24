@@ -169,18 +169,24 @@ def expected_upsert_multiple_primary_spark_df(spark_session: SparkSession):
     return spark_session.createDataFrame(data, schema)
 
 
-class TestManagedTableDataSet:  # pylint: disable=R0904
+# pylint: disable=too-many-public-methods
+class TestManagedTableDataSet:
     def test_full_table(self):
         unity_ds = ManagedTableDataSet(catalog="test", database="test", table="test")
-        assert unity_ds._table.full_table_location() == "test.test.test"
+        assert unity_ds._table.full_table_location() == "`test`.`test`.`test`"
+
+        unity_ds = ManagedTableDataSet(
+            catalog="test-test", database="test", table="test"
+        )
+        assert unity_ds._table.full_table_location() == "`test-test`.`test`.`test`"
 
     def test_database_table(self):
         unity_ds = ManagedTableDataSet(database="test", table="test")
-        assert unity_ds._table.full_table_location() == "test.test"
+        assert unity_ds._table.full_table_location() == "`test`.`test`"
 
     def test_table_only(self):
         unity_ds = ManagedTableDataSet(table="test")
-        assert unity_ds._table.full_table_location() == "default.test"
+        assert unity_ds._table.full_table_location() == "`default`.`test`"
 
     def test_table_missing(self):
         with pytest.raises(TypeError):
@@ -195,7 +201,9 @@ class TestManagedTableDataSet:  # pylint: disable=R0904
             "write_mode": "overwrite",
             "dataframe_type": "spark",
             "primary_key": None,
-            "version": None,
+            "version": "None",
+            "owner_group": None,
+            "partition_columns": None,
         }
 
     def test_invalid_write_mode(self):
@@ -209,6 +217,18 @@ class TestManagedTableDataSet:  # pylint: disable=R0904
     def test_missing_primary_key_upsert(self):
         with pytest.raises(DataSetError):
             ManagedTableDataSet(table="test", write_mode="upsert")
+
+    def test_invalid_table_name(self):
+        with pytest.raises(DataSetError):
+            ManagedTableDataSet(table="invalid!")
+
+    def test_invalid_database(self):
+        with pytest.raises(DataSetError):
+            ManagedTableDataSet(table="test", database="invalid!")
+
+    def test_invalid_catalog(self):
+        with pytest.raises(DataSetError):
+            ManagedTableDataSet(table="test", catalog="invalid!")
 
     def test_schema(self):
         unity_ds = ManagedTableDataSet(
@@ -238,6 +258,20 @@ class TestManagedTableDataSet:  # pylint: disable=R0904
             ]
         )
         assert unity_ds._table.schema() == expected_schema
+
+    def test_invalid_schema(self):
+        with pytest.raises(DataSetError):
+            ManagedTableDataSet(
+                table="test",
+                schema={
+                    "fields": [
+                        {
+                            "invalid": "schema",
+                        }
+                    ],
+                    "type": "struct",
+                },
+            )._table.schema()
 
     def test_catalog_exists(self):
         unity_ds = ManagedTableDataSet(
