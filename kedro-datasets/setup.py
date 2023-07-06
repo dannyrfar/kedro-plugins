@@ -11,6 +11,7 @@ POLARS = "polars~=0.17.0"
 DELTA = "delta-spark~=1.2.1"
 MLFLOW = "mlflow~=2.4.1"
 
+
 def _collect_requirements(requires):
     return sorted(set(chain.from_iterable(requires.values())))
 
@@ -20,13 +21,15 @@ biosequence_require = {"biosequence.BioSequenceDataSet": ["biopython~=1.73"]}
 dask_require = {
     "dask.ParquetDataSet": ["dask[complete]~=2021.10", "triad>=0.6.7, <1.0"]
 }
-databricks_require = {"databricks.ManagedTableDataSet": [SPARK, PANDAS, DELTA],
-                      "databricks.MLFlowModel":[SPARK, MLFLOW],
-                      "databricks.MLFlowArtifact":[SPARK, MLFLOW],
-                      "databricks.MLFlowDataSet":[SPARK, MLFLOW],
-                      "databricks.MLFlowMetrics":[SPARK, MLFLOW],
-                      "databricks.MLFlowModelMetadata":[SPARK, MLFLOW],
-                      "databricks.MLFlowTags":[SPARK, MLFLOW]}
+databricks_require = {
+    "databricks.ManagedTableDataSet": [SPARK, PANDAS, DELTA],
+    "databricks.MLFlowModel": [SPARK, MLFLOW],
+    "databricks.MLFlowArtifact": [SPARK, MLFLOW],
+    "databricks.MLFlowDataSet": [SPARK, MLFLOW],
+    "databricks.MLFlowMetrics": [SPARK, MLFLOW],
+    "databricks.MLFlowModelMetadata": [SPARK, MLFLOW],
+    "databricks.MLFlowTags": [SPARK, MLFLOW],
+}
 geopandas_require = {
     "geopandas.GeoJSONDataSet": ["geopandas>=0.6.0, <1.0", "pyproj~=3.0"]
 }
