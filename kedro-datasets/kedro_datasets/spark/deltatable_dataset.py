@@ -19,7 +19,7 @@ class DeltaTableDataSet(AbstractDataSet[None, DeltaTable]):
 
     Example usage for the
     `YAML API <https://kedro.readthedocs.io/en/stable/data/\
-    data_catalog.html#use-the-data-catalog-with-the-yaml-api>`_:
+    data_catalog_yaml_examples.html>`_:
 
     .. code-block:: yaml
 
@@ -34,7 +34,7 @@ class DeltaTableDataSet(AbstractDataSet[None, DeltaTable]):
 
     Example usage for the
     `Python API <https://kedro.readthedocs.io/en/stable/data/\
-    data_catalog.html#use-the-data-catalog-with-the-code-api>`_:
+    advanced_data_catalog_usage.html>`_:
     ::
 
         >>> from pyspark.sql import SparkSession
@@ -98,7 +98,9 @@ class DeltaTableDataSet(AbstractDataSet[None, DeltaTable]):
         try:
             self._get_spark().read.load(path=load_path, format="delta")
         except AnalysisException as exception:
-            if "is not a Delta table" in exception.desc:
+            # `AnalysisException.desc` is deprecated with pyspark >= 3.4
+            message = exception.desc if hasattr(exception, "desc") else str(exception)
+            if "Path does not exist:" in message or "is not a Delta table" in message:
                 return False
             raise
 

@@ -18,7 +18,7 @@ class APIDataSet(AbstractDataSet[None, requests.Response]):
     It uses the python requests library: https://requests.readthedocs.io/en/latest/
 
     Example usage for the `YAML API <https://kedro.readthedocs.io/en/stable/data/\
-    data_catalog.html#use-the-data-catalog-with-the-yaml-api>`_:
+    data_catalog_yaml_examples.html>`_:
 
     .. code-block:: yaml
 
@@ -34,7 +34,7 @@ class APIDataSet(AbstractDataSet[None, requests.Response]):
             year: 2000
 
     Example usage for the `Python API <https://kedro.readthedocs.io/en/stable/data/\
-    data_catalog.html#use-the-data-catalog-with-the-code-api>`_: ::
+    advanced_data_catalog_usage.html>`_: ::
 
         >>> from kedro_datasets.api import APIDataSet
         >>>
@@ -207,9 +207,9 @@ class APIDataSet(AbstractDataSet[None, requests.Response]):
 
     def _execute_save_request(self, json_data: Any) -> requests.Response:
         try:
-            json_.loads(json_data)
+            self._request_args["json"] = json_.loads(json_data)
         except TypeError:
-            self._request_args["json"] = json_.dumps(json_data)
+            self._request_args["json"] = json_data
         try:
             response = requests.request(**self._request_args)
             response.raise_for_status()

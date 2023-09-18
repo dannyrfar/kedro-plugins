@@ -1,9 +1,38 @@
 # Upcoming Release
 ## Major features and improvements
+## Bug fixes and other changes
+## Community contributions
+
+# Release 1.7.0:
+## Major features and improvements
+* Added `polars.GenericDataSet`, a `GenericDataSet` backed by [polars](https://www.pola.rs/), a lightning fast dataframe package built entirely using Rust.
 
 ## Bug fixes and other changes
+* Fixed broken links in docstrings.
+* Reverted PySpark pin to <4.0.
 
 ## Community contributions
+Many thanks to the following Kedroids for contributing PRs to this release:
+* [Walber Moreira](https://github.com/wmoreiraa)
+
+# Release 1.6.0:
+
+## Major features and improvements
+* Added support for Python 3.11.
+
+# Release 1.5.3:
+## Bug fixes and other changes
+* Made `databricks.ManagedTableDataSet` read-only by default.
+    * The user needs to specify `write_mode` to allow `save` on the data set.
+* Fixed an issue on `api.APIDataSet` where the sent data was doubly converted to json
+  string (once by us and once by the `requests` library).
+* Fixed problematic `kedro-datasets` optional dependencies, revert to `setup.py`
+
+## Community contributions
+# Release 1.5.2:
+
+## Bug fixes and other changes
+* Fixed problematic `kedro-datasets` optional dependencies.
 
 # Release 1.5.1:
 

@@ -1,4 +1,7 @@
 # Upcoming release
+* Added support for Python 3.11
+
+# Release 0.2.5
 * Migrate all project metadata to static `pyproject.toml`.
 
 # Release 0.2.4
